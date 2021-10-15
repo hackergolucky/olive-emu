@@ -17,9 +17,7 @@
 
 #include <stdio.h>
 
-int main(int argc, char *argv[])
+int main(int argc, char **argv)
 {
     printf("Welcome to Olive!\n");
-
-    return 0;
 }
