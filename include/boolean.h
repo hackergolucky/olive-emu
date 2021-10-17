@@ -15,32 +15,14 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include "window.h"
-#include "core/cpu.h"
-#include "core/bus.h"
+#ifndef __BOOLEAN_H__
+#define __BOOLEAN_H__
 
-int main(int argc, char **argv)
-{
-    printf("Welcome to Olive!\n");
+#include <stdint.h>
 
-    mCpu *cpu = (mCpu *) malloc(sizeof(mCpu));
-    mCpu_init(cpu);
+typedef uint8_t BOOL;
 
-    mWindow *window = (mWindow *) malloc(sizeof(mWindow));
-    if(mWindow_init(window) != 0)
-        goto end;
+#define FALSE 0
+#define TRUE 1
 
-    while(window->running == TRUE)
-    {
-        mWindow_update(window);
-    }
-
-end:
-    mWindow_destroy(window);
-    free(window);
-    free(cpu);
-
-    return 0;
-}
+#endif // __BOOLEAN_H__

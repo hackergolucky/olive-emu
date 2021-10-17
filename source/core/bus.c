@@ -15,32 +15,21 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include "window.h"
-#include "core/cpu.h"
 #include "core/bus.h"
+#include <memory.h>
 
-int main(int argc, char **argv)
+
+void mBus_zeroMem(struct mMemMap *map)
 {
-    printf("Welcome to Olive!\n");
+    memset(map->mem, 0x00, 0x10000);
+}
 
-    mCpu *cpu = (mCpu *) malloc(sizeof(mCpu));
-    mCpu_init(cpu);
+uint8_t mBus_read8(struct mMemMap *map, uint16_t addr)
+{
+    return map->mem[addr];
+}
 
-    mWindow *window = (mWindow *) malloc(sizeof(mWindow));
-    if(mWindow_init(window) != 0)
-        goto end;
-
-    while(window->running == TRUE)
-    {
-        mWindow_update(window);
-    }
-
-end:
-    mWindow_destroy(window);
-    free(window);
-    free(cpu);
-
-    return 0;
+void mBus_write8(struct mMemMap *map, uint16_t addr, uint8_t byte)
+{
+    map->mem[addr] = byte;
 }

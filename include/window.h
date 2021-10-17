@@ -15,32 +15,30 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include "window.h"
-#include "core/cpu.h"
-#include "core/bus.h"
+#ifndef __WINDOW_H__
+#define __WINDOW_H__
 
-int main(int argc, char **argv)
+#include "SDL.h"
+#include "boolean.h"
+
+typedef struct window_t
 {
-    printf("Welcome to Olive!\n");
+    BOOL running;
 
-    mCpu *cpu = (mCpu *) malloc(sizeof(mCpu));
-    mCpu_init(cpu);
+    SDL_Window *sdlWindow;
+    SDL_Renderer * sdlRenderer;
+} mWindow;
 
-    mWindow *window = (mWindow *) malloc(sizeof(mWindow));
-    if(mWindow_init(window) != 0)
-        goto end;
+#if __cplusplus
+extern "C" {
+#endif
 
-    while(window->running == TRUE)
-    {
-        mWindow_update(window);
-    }
+int mWindow_init(mWindow *window);
+void mWindow_update(mWindow *window);
+void mWindow_destroy(mWindow *window);
 
-end:
-    mWindow_destroy(window);
-    free(window);
-    free(cpu);
-
-    return 0;
+#if __cplusplus
 }
+#endif
+
+#endif // __WINDOW_H__

@@ -15,32 +15,36 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include "window.h"
-#include "core/cpu.h"
-#include "core/bus.h"
+#ifndef __CPU_H__
+#define __CPU_H__
 
-int main(int argc, char **argv)
+#include <stdint.h>
+#include "boolean.h"
+#include "bus.h"
+
+typedef struct cpu_t
 {
-    printf("Welcome to Olive!\n");
+    struct {
+        BOOL n : 1;
+        BOOL v : 1;
+        BOOL b : 1;
+        BOOL d : 1;
+        BOOL i : 1;
+        BOOL z : 1;
+        BOOL c : 1;
+    } p;
 
-    mCpu *cpu = (mCpu *) malloc(sizeof(mCpu));
-    mCpu_init(cpu);
+    uint8_t a;
+    uint8_t x, y;
+    uint8_t sp;
+    uint16_t pc;
 
-    mWindow *window = (mWindow *) malloc(sizeof(mWindow));
-    if(mWindow_init(window) != 0)
-        goto end;
+    struct mMemMap map;
+} mCpu;
 
-    while(window->running == TRUE)
-    {
-        mWindow_update(window);
-    }
+void mCpu_init(mCpu *cpu);
 
-end:
-    mWindow_destroy(window);
-    free(window);
-    free(cpu);
+int mCpu_runForCycles(mCpu *cpu, int cycles);
 
-    return 0;
-}
+
+#endif // __CPU_H__
