@@ -23,15 +23,23 @@
 
 typedef struct window_t
 {
+    int gameW;
+    int gameH;
+    int scale;
+    int gameX;
+    int gameY;
+
     BOOL running;
+    uint32_t *backBuffer;
 
     SDL_Window *sdlWindow;
-    SDL_Renderer * sdlRenderer;
+    SDL_Renderer *sdlRenderer;
+    SDL_Texture *sdlTexture;
 } mWindow;
 
 #if __cplusplus
 extern "C" {
-#endif
+#endif // __cplusplus
 
 int mWindow_init(mWindow *window);
 void mWindow_update(mWindow *window);
@@ -39,6 +47,6 @@ void mWindow_destroy(mWindow *window);
 
 #if __cplusplus
 }
-#endif
+#endif // __cplusplus
 
 #endif // __WINDOW_H__

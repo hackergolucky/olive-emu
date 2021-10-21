@@ -15,11 +15,13 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <stdio.h>
 #include "core/cpu.h"
-#include "core/bus.h"
+#include "core/cart.h"
+#include "nes.h"
 
 
-void mCpu_init(mCpu *cpu)
+void mCpu_init(struct mCpu *cpu)
 {
     // Starting value of P is 0x34
     cpu->p.i = TRUE;
@@ -31,17 +33,18 @@ void mCpu_init(mCpu *cpu)
     // SP starts at $FD
     cpu->sp = 0xFD;
     // Initialize memory map to 0s
-    mBus_zeroMem(&cpu->map);
+    for(int i = 0; i < 0x800; i++)
+        cpu->ram[i] = 0x00;
 }
 
-uint8_t mCpu_fetch(mCpu *cpu)
+uint8_t mCpu_fetch(struct mCpu *cpu)
 {
-    uint8_t byte = mBus_read8(&cpu->map, cpu->pc);
+    uint8_t byte = mCpu_read8(cpu, cpu->pc);
     ++cpu->pc;
     return byte;
 }
 
-int mCpu_runforCycles(mCpu *cpu, int cycles)
+int mCpu_runforCycles(struct mCpu *cpu, int cycles)
 {
     while(cycles > 0)
     {
@@ -50,4 +53,30 @@ int mCpu_runforCycles(mCpu *cpu, int cycles)
     
     // return overspent cycles
     return cycles;
+}
+
+uint8_t mCpu_read8(struct mCpu *cpu, uint16_t addr)
+{
+    if(addr < 0x2000) {
+        addr &= 0x7FF;
+        return cpu->ram[addr];
+    }
+    else if(addr >= 0x2000 && addr < 0x4000) {
+        addr &= 0x2007;
+        printf("PPU register read: $%X\n", addr);
+    }
+    else if(addr >= 0x4000 && addr < 0x4020) {
+        printf("APU/IO register read: $%X\n", addr);
+    }
+    else if(addr >= 0x4020) {
+        printf("Cart read: $%X\n", addr);
+        return mCart_read8(gNES->cart, addr);
+    }
+
+    return 0xFF;
+}
+
+void mCpu_write8(struct mCpu *cpu, uint16_t addr, uint8_t byte)
+{
+
 }

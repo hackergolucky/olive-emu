@@ -15,7 +15,9 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <stdio.h>
 #include "window.h"
+#include "nes.h"
 #include "nfd.h"
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_sdl.h"
@@ -27,7 +29,15 @@
 
 
 int mWindow_init(mWindow *window)
-{
+{    
+    window->gameW = 256;
+    window->gameH = 240;
+    window->scale = 2;
+    int screenW = 1280;
+    int screenH = 720;
+    window->gameX = (int) ((screenW / 2) - ((window->gameW * window->scale) / 2));
+    window->gameY = (int) ((screenH / 2) - ((window->gameH * window->scale) / 2));
+
     if(SDL_Init(SDL_INIT_EVERYTHING) != 0)
     {
         printf("Error! %s\n", SDL_GetError());
@@ -37,12 +47,19 @@ int mWindow_init(mWindow *window)
     NFD_Init();
 
     SDL_WindowFlags winFlags = (SDL_WindowFlags)(SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
-    window->sdlWindow = SDL_CreateWindow("Olive NES Emulator", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720, winFlags);
+    window->sdlWindow = SDL_CreateWindow("Olive NES Emulator", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, screenW, screenH, winFlags);
 
     window->sdlRenderer = SDL_CreateRenderer(window->sdlWindow, -1, SDL_RENDERER_PRESENTVSYNC | SDL_RENDERER_ACCELERATED);
     if(window->sdlRenderer == NULL)
     {
         SDL_Log("Error creating SDL_Renderer!");
+        return -1;
+    }
+
+    window->sdlTexture = SDL_CreateTexture(window->sdlRenderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING, window->gameW, window->gameH);
+    if(window->sdlTexture == NULL)
+    {
+        SDL_Log("Error creating screen texture!");
         return -1;
     }
 
@@ -56,26 +73,49 @@ int mWindow_init(mWindow *window)
 
     window->running = TRUE;
 
+    window->backBuffer = (uint32_t *) malloc(window->gameW * window->gameH * sizeof(uint32_t));
+    for(int x = 0; x < window->gameW; x++)
+    {
+        for(int y = 0; y < window->gameH; y++)
+        {
+            window->backBuffer[x + (y * window->gameW)] = 0xFF0000FF;
+        }
+    }
+
     return 0;
 }
 
 void mWindow_update(mWindow *window)
 {
+    // Handle window events
     SDL_Event event;
     while(SDL_PollEvent(&event))
     {
         ImGui_ImplSDL2_ProcessEvent(&event);
         if(event.type == SDL_QUIT ||
-            (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE && event.window.windowID == SDL_GetWindowID(window->sdlWindow)))
+            (event.type == SDL_WINDOWEVENT &&
+            event.window.event == SDL_WINDOWEVENT_CLOSE &&
+            event.window.windowID == SDL_GetWindowID(window->sdlWindow))
+        )
         {
             window->running = FALSE;
         }
     }
 
+    // Position the game screen to the
+    // center of the window
+    int windowW;
+    int windowH;
+    SDL_GetWindowSize(window->sdlWindow, &windowW, &windowH);
+    window->gameX = (int)((windowW / 2) - ((window->gameW * window->scale) / 2));
+    window->gameY = (int)((windowH / 2) - ((window->gameH * window->scale) / 2));
+
+    // Begin the frame
     ImGui_ImplSDLRenderer_NewFrame();
     ImGui_ImplSDL2_NewFrame(window->sdlWindow);
     ImGui::NewFrame();
 
+    // Draw UI
     if(ImGui::BeginMainMenuBar())
     {
         if(ImGui::BeginMenu("File"))
@@ -88,6 +128,9 @@ void mWindow_update(mWindow *window)
                 if(res == NFD_OKAY)
                 {
                     printf("ROM file opened: %s\n", (char *)outPath);
+                    FILE *f = fopen((char *)outPath, "rb");
+                    mNES_openCart(gNES, f);
+                    fclose(f);
                     NFD_FreePath(outPath);
                 }
                 else if(res == NFD_CANCEL)
@@ -105,10 +148,22 @@ void mWindow_update(mWindow *window)
         ImGui::EndMainMenuBar();
     }
 
+    // Render the UI
     ImGui::Render();
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
     SDL_SetRenderDrawColor(window->sdlRenderer, (Uint8)(clear_color.x * 255), (Uint8)(clear_color.y * 255), (Uint8)(clear_color.z * 255), (Uint8)(clear_color.w * 255));
+    
+    // Render the game window
     SDL_RenderClear(window->sdlRenderer);
+    SDL_Rect rect = {window->gameX, window->gameY, window->gameW * window->scale, window->gameH * window->scale};
+    uint32_t *frontBuffer;
+    int pitch;
+    SDL_LockTexture(window->sdlTexture, NULL, (void **)&frontBuffer, &pitch);
+    memcpy((void *)frontBuffer, (void *)window->backBuffer, window->gameW * window->gameH * sizeof(uint32_t));
+    SDL_UnlockTexture(window->sdlTexture);
+    SDL_RenderCopy(window->sdlRenderer, window->sdlTexture, NULL, &rect);
+
+    // Aaaand update the frame
     ImGui_ImplSDLRenderer_RenderDrawData(ImGui::GetDrawData());
     SDL_RenderPresent(window->sdlRenderer);
 }
@@ -121,6 +176,7 @@ void mWindow_destroy(mWindow *window)
     ImGui_ImplSDL2_Shutdown();
     ImGui::DestroyContext();
 
+    SDL_DestroyTexture(window->sdlTexture);
     SDL_DestroyRenderer(window->sdlRenderer);
     SDL_DestroyWindow(window->sdlWindow);
     SDL_Quit();

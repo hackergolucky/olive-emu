@@ -15,18 +15,38 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __BUS_H__
-#define __BUS_H__
-#include <stdint.h>
+#ifndef __NES_H__
+#define __NES_H__
 
-struct mMemMap
+#include <stdio.h>
+#include "boolean.h"
+struct mCpu;
+struct mCart;
+
+typedef struct nes_t
 {
-    uint8_t mem[0x10000];
-};
+    BOOL cartLoaded;
 
-void mBus_zeroMem(struct mMemMap *map);
+    struct mCpu *cpu;
+    struct mCart *cart;
+} mNES;
 
-uint8_t mBus_read8(struct mMemMap *map, uint16_t addr);
-void mBus_write8(struct mMemMap *map, uint16_t addr, uint8_t byte);
+// Global NES instance
+extern mNES *gNES;
 
-#endif // __BUS_H__
+
+void mNES_init(mNES *nes);
+void mNES_destroy(mNES *nes);
+
+#if __cplusplus
+extern "C" {
+#endif // __cplusplus
+
+void mNES_openCart(mNES *nes, FILE *file);
+
+#if __cplusplus
+}
+#endif // __cplusplus
+
+
+#endif // __NES_H__

@@ -15,33 +15,45 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <stdio.h>
 #include <stdlib.h>
-#include "window.h"
 #include "nes.h"
+#include "core/cpu.h"
+#include "core/cart.h"
+
+mNES *gNES;
 
 
-int main(int argc, char **argv)
+void mNES_init(mNES *nes)
 {
-    printf("Welcome to Olive!\n");
+    nes->cartLoaded = FALSE;
 
-    gNES = (mNES *) malloc(sizeof(mNES));
-    mNES_init(gNES);
+    nes->cpu = (struct mCpu *) malloc(sizeof(struct mCpu));
+    mCpu_init(nes->cpu);
+}
 
-    mWindow *window = (mWindow *) malloc(sizeof(mWindow));
-    if(mWindow_init(window) != 0)
-        goto end;
+void mNES_destroy(mNES *nes)
+{
+    if(nes->cartLoaded) {
+        mCart_destroy(nes->cart);
 
-    while(window->running == TRUE)
-    {
-        mWindow_update(window);
+        free(nes->cart);
     }
+    free(nes->cpu);
+}
 
-end:
-    mWindow_destroy(window);
-    mNES_destroy(gNES);
-    free(window);
-    free(gNES);
+void mNES_openCart(mNES *nes, FILE *file)
+{
+    uint8_t *bytes;
+    size_t fileSize;
 
-    return 0;
+    fseek(file, 0L, SEEK_END);
+    fileSize = ftell(file);
+    rewind(file);
+    bytes = (uint8_t *) malloc(fileSize);
+    fread((void *)bytes, sizeof(uint8_t), fileSize, file);
+
+    nes->cart = (struct mCart *) malloc(sizeof(struct mCart));
+    nes->cartLoaded = mCart_init(nes->cart, bytes);
+    
+    free(bytes);
 }

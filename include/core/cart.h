@@ -15,38 +15,44 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef __CPU_H__
-#define __CPU_H__
+#ifndef __CART_H__
+#define __CART_H__
 
 #include <stdint.h>
 #include "boolean.h"
 
-struct mCpu
+struct mCart
 {
+    uint8_t *prgRom;
+    uint8_t *chrRom;
+
     struct {
-        BOOL n : 1;
-        BOOL v : 1;
-        BOOL b : 1;
-        BOOL d : 1;
-        BOOL i : 1;
-        BOOL z : 1;
-        BOOL c : 1;
-    } p;
+        uint8_t prgBanks; // 16KB banks
+        uint8_t chrBanks; // 8KB banks
+        
+        struct {
+            BOOL mirroring : 1;
+            BOOL hasPrgRam : 1;
+            BOOL hasTrainer : 1;
+            BOOL ignoreMirroring : 1;
+            uint8_t lowerMapper : 4;
+        } f6;
+        struct {
+            BOOL vsUnisystem : 1;
+            BOOL playChoice10 : 1;
+            uint8_t nes2 : 2; // Must be = 2 for NES 2.0
+            uint8_t upperMapper : 4;
+        } f7;
+        
+        uint8_t prgRamBanks;
 
-    uint8_t a;
-    uint8_t x, y;
-    uint8_t sp;
-    uint16_t pc;
-
-    uint8_t ram[0x800];
+    } header;
 };
 
-void mCpu_init(struct mCpu *cpu);
+BOOL mCart_init(struct mCart *cart, uint8_t *bytes);
+void mCart_destroy(struct mCart *cart);
 
-int mCpu_runForCycles(struct mCpu *cpu, int cycles);
-
-uint8_t mCpu_read8(struct mCpu *cpu, uint16_t addr);
-void mCpu_write8(struct mCpu *cpu, uint16_t addr, uint8_t byte);
+uint8_t mCart_read8(struct mCart *cart, uint16_t addr);
 
 
-#endif // __CPU_H__
+#endif // __CART_H__
